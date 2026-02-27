@@ -1,8 +1,3 @@
-"""
-Cook County Treasurer - Mailing Address Extractor (Web App)
-Upload an Excel file with PINs, get back the file with mailing addresses filled in.
-"""
-
 import os
 import uuid
 import time
@@ -25,15 +20,12 @@ from selenium.webdriver.support import expected_conditions as EC
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "ccta-extractor-secret-key-2026")
 app.config["UPLOAD_FOLDER"] = os.path.join(os.path.dirname(__file__), "uploads")
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB max
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
-# In-memory job tracking  { job_id: { status, progress, total, current_pin, log, file_path, done } }
 jobs = {}
 
-
-# ─────────────────────────────────── helpers ───────────────────────────────────
 
 def create_driver():
     options = Options()
@@ -43,7 +35,6 @@ def create_driver():
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
 
-    # For Docker / Render deployment
     chrome_bin = os.environ.get("CHROME_BIN")
     chromedriver_path = os.environ.get("CHROMEDRIVER_PATH")
 
@@ -122,8 +113,6 @@ def parse_mailing(body_text):
     return result
 
 
-# ────────────────────────────────── worker ──────────────────────────────────
-
 def process_job(job_id, file_path):
     job = jobs[job_id]
     try:
@@ -188,10 +177,7 @@ def process_job(job_id, file_path):
         job["done"] = True
 
 
-# ───────────────────────────── cleanup old files ─────────────────────────────
-
 def cleanup_old_files():
-    """Remove uploaded files older than 1 hour."""
     folder = app.config["UPLOAD_FOLDER"]
     cutoff = time.time() - 3600
     for fname in os.listdir(folder):
@@ -199,8 +185,6 @@ def cleanup_old_files():
         if os.path.isfile(fpath) and os.path.getmtime(fpath) < cutoff:
             os.remove(fpath)
 
-
-# ─────────────────────────────────── routes ─────────────────────────────────
 
 @app.route("/")
 def index():
@@ -221,13 +205,11 @@ def upload():
     if not file.filename.endswith(".xlsx"):
         return jsonify({"error": "Only .xlsx files are accepted"}), 400
 
-    # Save file
     job_id = str(uuid.uuid4())[:8]
     filename = f"{job_id}_{secure_filename(file.filename)}"
     file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     file.save(file_path)
 
-    # Validate the file has PINs
     try:
         wb = openpyxl.load_workbook(file_path)
         ws = wb.active
@@ -241,7 +223,6 @@ def upload():
         os.remove(file_path)
         return jsonify({"error": f"Could not read Excel file: {str(e)}"}), 400
 
-    # Create job
     jobs[job_id] = {
         "status": "running",
         "progress": 0,
@@ -255,7 +236,6 @@ def upload():
         "failed": 0,
     }
 
-    # Start background thread
     thread = threading.Thread(target=process_job, args=(job_id, file_path), daemon=True)
     thread.start()
 

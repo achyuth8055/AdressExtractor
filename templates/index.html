@@ -218,7 +218,6 @@
         <h1>CCTA Address Extractor</h1>
         <p class="subtitle">Cook County Treasurer — Mailing Address Lookup</p>
 
-        <!-- Instructions -->
         <div class="steps">
             <b>1.</b> Upload an Excel file (.xlsx) with a <b>DT_PIN</b> column<br>
             <b>2.</b> Click <b>Start Extraction</b> and wait<br>
@@ -226,10 +225,8 @@
             <b>Tip:</b> Divide Address into multliple sets for faster processing
         </div>
 
-        <!-- Error -->
         <div class="error-msg" id="errorMsg"></div>
 
-        <!-- Upload section -->
         <div id="uploadSection">
             <div class="upload-area" id="dropZone">
                 <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5">
@@ -242,7 +239,6 @@
             <button class="btn btn-primary" id="startBtn" disabled>Start Extraction</button>
         </div>
 
-        <!-- Progress section -->
         <div class="progress-section" id="progressSection">
             <div class="progress-header">
                 <span class="label"><span class="spinner"></span> Extracting addresses…</span>
@@ -256,7 +252,6 @@
             <div class="log-area" id="logArea"></div>
         </div>
 
-        <!-- Done section -->
         <div class="done-section" id="doneSection">
             <div class="done-icon">✅</div>
             <div class="done-text" id="doneText">Extraction complete!</div>
@@ -278,7 +273,6 @@
 
         let selectedFile = null;
 
-        // Drag & drop
         dropZone.addEventListener('click', () => fileInput.click());
         dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
         dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
@@ -303,7 +297,6 @@
         function showError(msg) { errorMsg.textContent = msg; errorMsg.classList.add('active'); }
         function hideError() { errorMsg.classList.remove('active'); }
 
-        // Start extraction
         startBtn.addEventListener('click', async () => {
             if (!selectedFile) return;
             hideError();
@@ -322,7 +315,6 @@
                     startBtn.textContent = 'Start Extraction';
                     return;
                 }
-                // Switch to progress view
                 uploadSection.style.display = 'none';
                 progressSection.classList.add('active');
                 pollStatus(data.job_id, data.total);
@@ -333,7 +325,6 @@
             }
         });
 
-        // Poll job status
         let lastLogLen = 0;
         async function pollStatus(jobId, total) {
             try {
@@ -350,7 +341,6 @@
                         `Currently processing: <span>${data.current_pin}</span>`;
                 }
 
-                // Append new log lines
                 const logArea = document.getElementById('logArea');
                 for (let i = lastLogLen; i < data.log.length; i++) {
                     const line = data.log[i];
@@ -375,12 +365,11 @@
                     }
                     return;
                 }
-            } catch (e) { /* ignore transient errors */ }
+            } catch (e) {}
 
             setTimeout(() => pollStatus(jobId, total), 1500);
         }
 
-        // Reset
         document.getElementById('resetLink').addEventListener('click', () => {
             selectedFile = null;
             fileName.textContent = '';
