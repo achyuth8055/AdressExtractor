@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCTA Address Extractor</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .container {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 36px;
+            width: 100%;
+            max-width: 560px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: #111;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 24px;
+        }
+
+        .steps {
+            background: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            line-height: 1.9;
+            color: #555;
+        }
+        .steps b { color: #333; }
+
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 28px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            margin-bottom: 14px;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #2563eb;
+        }
+        .upload-area svg { margin-bottom: 8px; }
+        .upload-area p { font-size: 14px; color: #777; }
+        .upload-area .browse { color: #2563eb; font-weight: 600; }
+        .upload-area .filename {
+            font-size: 14px;
+            color: #2563eb;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        input[type="file"] { display: none; }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: #fff;
+        }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-primary:disabled {
+            background: #e0e0e0;
+            color: #aaa;
+            cursor: not-allowed;
+        }
+        .btn-success {
+            background: #16a34a;
+            color: #fff;
+            margin-top: 10px;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        .btn-success:hover { background: #15803d; }
+
+        .progress-section {
+            display: none;
+            margin-top: 20px;
+        }
+        .progress-section.active { display: block; }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .progress-header .label { color: #888; }
+        .progress-header .count { color: #2563eb; font-weight: 600; }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: #2563eb;
+            border-radius: 4px;
+            transition: width 0.4s ease;
+            width: 0%;
+        }
+
+        .progress-percent {
+            text-align: right;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+
+        .current-pin {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+        .current-pin span { color: #333; font-family: monospace; }
+
+        .log-area {
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 11.5px;
+            line-height: 1.6;
+            max-height: 180px;
+            overflow-y: auto;
+            color: #666;
+        }
+        .log-area .success { color: #16a34a; }
+        .log-area .fail { color: #dc2626; }
+
+        .done-section {
+            display: none;
+            text-align: center;
+            margin-top: 18px;
+        }
+        .done-section.active { display: block; }
+
+        .done-icon { font-size: 36px; margin-bottom: 6px; }
+        .done-text { font-size: 15px; color: #111; margin-bottom: 4px; }
+        .done-details { font-size: 12px; color: #888; margin-bottom: 10px; }
+
+        .reset-link {
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #2563eb;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .error-msg {
+            display: none;
+            background: #fff0f0;
+            border: 1px solid #fca5a5;
+            color: #dc2626;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 14px;
+        }
+        .error-msg.active { display: block; }
+
+        .spinner {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid #ddd;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CCTA Address Extractor</h1>
+        <p class="subtitle">Cook County Treasurer — Mailing Address Lookup</p>
+
+        <!-- Instructions -->
+        <div class="steps">
+            <b>1.</b> Upload an Excel file (.xlsx) with a <b>DT_PIN</b> column<br>
+            <b>2.</b> Click <b>Start Extraction</b> and wait<br>
+            <b>3.</b> Download your file with addresses filled in<br>
+            <b>Tip:</b> Divide Address into multliple sets for faster processing
+        </div>
+
+        <!-- Error -->
+        <div class="error-msg" id="errorMsg"></div>
+
+        <!-- Upload section -->
+        <div id="uploadSection">
+            <div class="upload-area" id="dropZone">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg>
+                <p>Drag & drop your .xlsx file here<br>or <span class="browse">click to browse</span></p>
+                <div class="filename" id="fileName"></div>
+            </div>
+            <input type="file" id="fileInput" accept=".xlsx">
+            <button class="btn btn-primary" id="startBtn" disabled>Start Extraction</button>
+        </div>
+
+        <!-- Progress section -->
+        <div class="progress-section" id="progressSection">
+            <div class="progress-header">
+                <span class="label"><span class="spinner"></span> Extracting addresses…</span>
+                <span class="count" id="progressCount">0 / 0</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressBar"></div>
+            </div>
+            <div class="progress-percent" id="progressPercent">0%</div>
+            <div class="current-pin" id="currentPin"></div>
+            <div class="log-area" id="logArea"></div>
+        </div>
+
+        <!-- Done section -->
+        <div class="done-section" id="doneSection">
+            <div class="done-icon">✅</div>
+            <div class="done-text" id="doneText">Extraction complete!</div>
+            <div class="done-details" id="doneDetails"></div>
+            <a class="btn btn-success" id="downloadBtn" href="#">Download Excel File</a>
+            <div class="reset-link" id="resetLink">← Extract another file</div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const startBtn = document.getElementById('startBtn');
+        const errorMsg = document.getElementById('errorMsg');
+        const uploadSection = document.getElementById('uploadSection');
+        const progressSection = document.getElementById('progressSection');
+        const doneSection = document.getElementById('doneSection');
+
+        let selectedFile = null;
+
+        // Drag & drop
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files[0]); });
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.xlsx')) {
+                showError('Please select an .xlsx file');
+                return;
+            }
+            selectedFile = file;
+            fileName.textContent = '📄 ' + file.name;
+            startBtn.disabled = false;
+            hideError();
+        }
+
+        function showError(msg) { errorMsg.textContent = msg; errorMsg.classList.add('active'); }
+        function hideError() { errorMsg.classList.remove('active'); }
+
+        // Start extraction
+        startBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            hideError();
+            startBtn.disabled = true;
+            startBtn.textContent = 'Uploading…';
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                const resp = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (data.error) {
+                    showError(data.error);
+                    startBtn.disabled = false;
+                    startBtn.textContent = 'Start Extraction';
+                    return;
+                }
+                // Switch to progress view
+                uploadSection.style.display = 'none';
+                progressSection.classList.add('active');
+                pollStatus(data.job_id, data.total);
+            } catch (e) {
+                showError('Upload failed. Please try again.');
+                startBtn.disabled = false;
+                startBtn.textContent = 'Start Extraction';
+            }
+        });
+
+        // Poll job status
+        let lastLogLen = 0;
+        async function pollStatus(jobId, total) {
+            try {
+                const resp = await fetch(`/status/${jobId}`);
+                const data = await resp.json();
+
+                const pct = total > 0 ? Math.round((data.progress / total) * 100) : 0;
+                document.getElementById('progressBar').style.width = pct + '%';
+                document.getElementById('progressPercent').textContent = pct + '%';
+                document.getElementById('progressCount').textContent = `${data.progress} / ${total}`;
+
+                if (data.current_pin) {
+                    document.getElementById('currentPin').innerHTML =
+                        `Currently processing: <span>${data.current_pin}</span>`;
+                }
+
+                // Append new log lines
+                const logArea = document.getElementById('logArea');
+                for (let i = lastLogLen; i < data.log.length; i++) {
+                    const line = data.log[i];
+                    const div = document.createElement('div');
+                    if (line.includes('✓')) div.classList.add('success');
+                    else if (line.includes('✗') || line.includes('Failed') || line.includes('Error')) div.classList.add('fail');
+                    div.textContent = line;
+                    logArea.appendChild(div);
+                }
+                lastLogLen = data.log.length;
+                logArea.scrollTop = logArea.scrollHeight;
+
+                if (data.done) {
+                    if (data.status === 'complete') {
+                        progressSection.classList.remove('active');
+                        doneSection.classList.add('active');
+                        document.getElementById('doneDetails').textContent =
+                            `${data.success} addresses found, ${data.failed} failed`;
+                        document.getElementById('downloadBtn').href = `/download/${jobId}`;
+                    } else {
+                        showError(data.log[data.log.length - 1] || 'Extraction failed');
+                    }
+                    return;
+                }
+            } catch (e) { /* ignore transient errors */ }
+
+            setTimeout(() => pollStatus(jobId, total), 1500);
+        }
+
+        // Reset
+        document.getElementById('resetLink').addEventListener('click', () => {
+            selectedFile = null;
+            fileName.textContent = '';
+            fileInput.value = '';
+            startBtn.disabled = true;
+            startBtn.textContent = 'Start Extraction';
+            lastLogLen = 0;
+            document.getElementById('logArea').innerHTML = '';
+            doneSection.classList.remove('active');
+            uploadSection.style.display = '';
+            hideError();
+        });
+    </script>
+</body>
+</html>
