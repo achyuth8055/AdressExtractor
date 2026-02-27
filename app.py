@@ -125,7 +125,11 @@ def process_job(job_id, file_path):
         for row_num in range(2, ws.max_row + 1):
             pin_val = ws.cell(row=row_num, column=pin_col).value
             if pin_val:
-                pins.append((row_num, str(pin_val).strip()))
+                pin_str = str(pin_val).strip().replace("-", "").replace(" ", "")
+                if pin_str.endswith(".0"):
+                    pin_str = pin_str[:-2]
+                pin_str = pin_str.zfill(14)
+                pins.append((row_num, pin_str))
 
         total = len(pins)
         job["total"] = total
@@ -146,6 +150,11 @@ def process_job(job_id, file_path):
                 job["current_pin"] = pin
                 job["log"].append(f"[{idx}/{total}] Looking up PIN: {pin}")
 
+                if len(pin) != 14 or not pin.isdigit():
+                    job["log"].append(f"  ✗ Invalid PIN format: {pin}")
+                    failed += 1
+                    continue
+
                 result = search_pin(driver, pin)
                 if result:
                     ws.cell(row=row_num, column=name_col, value=result["name"])
@@ -156,7 +165,7 @@ def process_job(job_id, file_path):
                     job["log"].append(f"  ✓ {result['name']}, {result['address']}, {result['city']}, {result['state']} {result['zipcode']}")
                     success += 1
                 else:
-                    job["log"].append(f"  ✗ Failed to retrieve")
+                    job["log"].append(f"  ✗ Failed to retrieve after 3 attempts")
                     failed += 1
 
                 if idx < total:
